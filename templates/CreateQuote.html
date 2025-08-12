@@ -1,0 +1,395 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Drag-and-Drop 텍스트 편집기</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      height: 100vh;
+    }
+    #sidebar {
+      width: 180px;
+      background: #f5f5f5;
+      border-right: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    #canvas-wrapper {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #eee;
+      overflow: auto;
+    }
+    #canvas {
+      position: relative;
+      background: white;
+      width: 815px;
+      height: 1154px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    #properties {
+      width: 200px;
+      background: #f9f9f9;
+      border-left: 1px solid #ccc;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .draggable {
+      padding: 5px;
+      background: transparent;
+      border: 1px dashed #aaa;
+      cursor: move;
+      position: absolute;
+      resize: both;
+      overflow: auto;
+      min-width: 40px;
+      min-height: 20px;
+    }
+    #addText {
+      padding: 8px 12px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+    }
+    label, select {
+      display: block;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .selected {
+      outline: 2px solid #007bff;
+    }
+    .delete-btn {
+      margin-top: 20px;
+      padding: 8px;
+      background: #dc3545;
+      color: white;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+  
+    .edit-item {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 6px;
+      text-align: left;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .edit-item:hover {
+      background: #f0f0f0;
+    }
+
+
+    .align-btn {
+      padding: 4px 8px;
+      margin-right: 5px;
+      border: 1px solid #ccc;
+      background: #fff;
+      cursor: pointer;
+    }
+    .align-btn:hover {
+      background: #eee;
+    }
+
+
+    #propertiesPanel label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    #propertiesPanel select,
+    #propertiesPanel input[type="text"],
+    #propertiesPanel button {
+      margin-top: 4px;
+      margin-bottom: 8px;
+      padding: 6px;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    #deleteBox {
+      background: #fff;
+      color: red;
+      border: 1px solid red;
+      margin-top: 10px;
+    }
+    #deleteBox:hover {
+      background: #fdd;
+    }
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+  document.getElementById('exportPDF').addEventListener('click', function () {
+    const canvasEl = document.getElementById('canvas');
+    html2pdf().from(canvasEl).set({
+      margin: 0,
+      filename: 'canvas.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    }).save();
+  });
+
+</script>
+</head>
+<body>
+
+
+<div id="sidebar">
+  <button id="exportPDF" class="edit-item" style="margin-top:20px;">📄 PDF 저장</button>
+  <div style="font-weight:bold; margin-bottom:5px;">문서 편집</div>
+  <div id="editPanel">
+    <button id="addText" class="edit-item">🅰 텍스트</button>
+    <button id="addObject" class="edit-item">🔳 오브젝트</button>
+  </div>
+</div>
+
+<div id="canvas-wrapper">
+  <div id="canvas" style="overflow:auto; max-width:100%; max-height:100%; white-space:nowrap;"></div>
+</div>
+<div id="properties">
+  <label>
+    스타일
+    <select id="fontFamily" disabled>
+      <option value="">선택 안 됨</option>
+      <option value="sans-serif">본고딕</option>
+      <option value="serif">명조</option>
+      <option value="monospace">고정폭</option>
+    </select>
+  </label>
+  <label>
+    크기
+    <select id="fontSize" disabled>
+      <option value="">선택 안 됨</option>
+      <option value="12pt">12pt</option>
+      <option value="14pt">14pt</option>
+      <option value="16pt">16pt</option>
+    </select>
+  </label>
+  <label>
+    입력 형식
+    <select id="inputType" disabled>
+      <option value="">선택 안 됨</option>
+      <option value="text">텍스트</option>
+      <option value="number">숫자</option>
+      <option value="date">날짜</option>
+    </select>
+  </label>
+  
+  <div id="alignmentControls" style="margin-top: 10px;">
+    정렬:
+    <button class="align-btn" data-align="left">좌</button>
+    <button class="align-btn" data-align="center">중앙</button>
+    <button class="align-btn" data-align="right">우</button>
+  </div>
+
+  <div id="deleteBox" class="delete-btn" style="display: none;">🗑 삭제</div>
+</div>
+
+<script>
+  const canvas = document.getElementById('canvas');
+  const addTextBtn = document.getElementById('addText');
+  const deleteBoxBtn = document.getElementById('deleteBox');
+
+  const addObjectBtn = document.getElementById('addObject');
+  addObjectBtn.onclick = () => {
+    const el = document.createElement('div');
+    el.contentEditable = false;
+    el.className = 'draggable';
+    el.innerText = '오브젝트';
+    el.style.top = (50 + count * 40) + 'px';
+    el.style.left = '100px';
+    el.style.width = '150px';
+    el.style.height = '30px';
+    el.style.background = '#f0f0f0';
+    el.dataset.inputType = 'object';
+    count++;
+    canvas.appendChild(el);
+    makeDraggable(el);
+    makeSelectable(el);
+    el.click();
+  };
+
+
+  const fontFamily = document.getElementById('fontFamily');
+  const fontSize = document.getElementById('fontSize');
+  const inputType = document.getElementById('inputType');
+
+  let count = 0;
+  let selectedEl = null;
+  
+
+  addTextBtn.onclick = () => {
+    const el = document.createElement('div');
+    el.contentEditable = true;
+    el.className = 'draggable';
+    el.innerText = '텍스트 입력';
+    el.style.top = (50 + count * 40) + 'px';
+    el.style.left = '100px';
+    el.style.width = '150px';
+    el.style.height = '30px';
+    el.dataset.inputType = 'text';
+    el.dataset.fontFamily = 'sans-serif';
+    el.dataset.fontSize = '12pt';
+    el.style.fontFamily = 'sans-serif';
+    el.style.fontSize = '12pt';
+    count++;
+    canvas.appendChild(el);
+    makeDraggable(el);
+    makeSelectable(el);
+    el.click(); // auto-select
+  };
+
+  function makeDraggable(el) {
+    let isDragging = false;
+    let offsetX, offsetY;
+
+    el.addEventListener('mousedown', function(e) {
+      // Check if near bottom-right corner (resize handle)
+      const rect = el.getBoundingClientRect();
+      const isResizing = e.clientX > rect.right - 10 && e.clientY > rect.bottom - 10;
+      if (isResizing) return;
+
+      if (e.target === el) {
+        isDragging = true;
+        offsetX = e.offsetX;
+        offsetY = e.offsetY;
+        el.style.zIndex = 1000;
+      }
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (isDragging) {
+        const canvasRect = canvas.getBoundingClientRect();
+        el.style.left = (e.pageX - canvasRect.left - offsetX) + 'px';
+        el.style.top = (e.pageY - canvasRect.top - offsetY) + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', function() {
+      isDragging = false;
+    });
+  }
+
+  function makeSelectable(el) {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (selectedEl) selectedEl.classList.remove('selected');
+      selectedEl = el;
+      selectedEl.classList.add('selected');
+
+      fontFamily.disabled = false;
+      fontSize.disabled = false;
+      inputType.disabled = false;
+      deleteBoxBtn.style.display = 'block';
+
+      fontFamily.value = selectedEl.dataset.fontFamily || '';
+      fontSize.value = selectedEl.dataset.fontSize || '';
+      inputType.value = selectedEl.dataset.inputType || '';
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    const insideProps = document.getElementById('properties').contains(e.target);
+    const insideBox = e.target.classList.contains('draggable');
+    if (!insideProps && !insideBox) {
+      if (selectedEl) selectedEl.classList.remove('selected');
+      selectedEl = null;
+      fontFamily.disabled = true;
+      fontSize.disabled = true;
+      inputType.disabled = true;
+      fontFamily.value = "";
+      fontSize.value = "";
+      inputType.value = "";
+      deleteBoxBtn.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    const active = document.activeElement;
+    const isEditing = active && active.isContentEditable;
+    if (!isEditing && selectedEl && (e.key === 'Delete' || e.key === 'Backspace')) {
+      selectedEl.remove();
+      selectedEl = null;
+      fontFamily.disabled = true;
+      fontSize.disabled = true;
+      inputType.disabled = true;
+      fontFamily.value = "";
+      fontSize.value = "";
+      inputType.value = "";
+      deleteBoxBtn.style.display = 'none';
+    }
+  });
+
+  deleteBoxBtn.addEventListener('click', function() {
+    if (selectedEl) {
+      selectedEl.remove();
+      selectedEl = null;
+      fontFamily.disabled = true;
+      fontSize.disabled = true;
+      inputType.disabled = true;
+      fontFamily.value = "";
+      fontSize.value = "";
+      inputType.value = "";
+      deleteBoxBtn.style.display = 'none';
+    }
+  });
+
+  fontFamily.addEventListener('change', function() {
+    if (selectedEl) {
+      selectedEl.dataset.fontFamily = this.value;
+      selectedEl.style.fontFamily = this.value;
+    }
+  });
+
+  fontSize.addEventListener('change', function() {
+    if (selectedEl) {
+      selectedEl.dataset.fontSize = this.value;
+      selectedEl.style.fontSize = this.value;
+    }
+  });
+
+  inputType.addEventListener('change', function() {
+    if (selectedEl) selectedEl.dataset.inputType = this.value;
+  });
+
+  document.querySelectorAll('.align-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      if (selectedEl) {
+        selectedEl.style.textAlign = btn.dataset.align;
+      }
+    });
+  });
+
+
+  document.getElementById('exportPDF').addEventListener('click', function () {
+    const canvasEl = document.getElementById('canvas');
+    html2pdf().from(canvasEl).set({
+      margin: 0,
+      filename: 'canvas.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    }).save();
+  });
+
+</script>
+</body>
+</html>
