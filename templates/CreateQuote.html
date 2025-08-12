@@ -1,395 +1,243 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>Drag-and-Drop 텍스트 편집기</title>
+  <meta charset="UTF-8" />
+  <title>DrawQuote v{{VERSION}}</title>
+  <meta name="version" content="{{VERSION}}" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- html2pdf: 외부 로더만, 내부 스크립트는 별도로 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
+          integrity="sha512-YcsIP6w1QnN0r0m7X8lY2QGg3Wc6f0x8QO6X3jYq6p9f3q3v1vN1k7mQw0h9wF0n8o1a7wq6gZFZ8C2aF3+J1w=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      display: flex;
-      height: 100vh;
-    }
-    #sidebar {
-      width: 180px;
-      background: #f5f5f5;
-      border-right: 1px solid #ccc;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    #canvas-wrapper {
-      flex-grow: 1;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #eee;
-      overflow: auto;
-    }
-    #canvas {
-      position: relative;
-      background: white;
-      width: 815px;
-      height: 1154px;
-      box-shadow: 0 0 5px rgba(0,0,0,0.1);
-      overflow: hidden;
-    }
-    #properties {
-      width: 200px;
-      background: #f9f9f9;
-      border-left: 1px solid #ccc;
-      padding: 10px;
-      box-sizing: border-box;
-    }
-    .draggable {
-      padding: 5px;
-      background: transparent;
-      border: 1px dashed #aaa;
-      cursor: move;
-      position: absolute;
-      resize: both;
-      overflow: auto;
-      min-width: 40px;
-      min-height: 20px;
-    }
-    #addText {
-      padding: 8px 12px;
-      background: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-    }
-    label, select {
-      display: block;
-      margin-top: 10px;
-      width: 100%;
-    }
-    .selected {
-      outline: 2px solid #007bff;
-    }
-    .delete-btn {
-      margin-top: 20px;
-      padding: 8px;
-      background: #dc3545;
-      color: white;
-      text-align: center;
-      cursor: pointer;
-      border-radius: 4px;
-    }
-  
-    .edit-item {
-      display: block;
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 6px;
-      text-align: left;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    .edit-item:hover {
-      background: #f0f0f0;
-    }
-
-
-    .align-btn {
-      padding: 4px 8px;
-      margin-right: 5px;
-      border: 1px solid #ccc;
-      background: #fff;
-      cursor: pointer;
-    }
-    .align-btn:hover {
-      background: #eee;
-    }
-
-
-    #propertiesPanel label {
-      display: block;
-      margin-top: 12px;
-      font-weight: bold;
-      font-size: 14px;
-    }
-    #propertiesPanel select,
-    #propertiesPanel input[type="text"],
-    #propertiesPanel button {
-      margin-top: 4px;
-      margin-bottom: 8px;
-      padding: 6px;
-      width: 100%;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 13px;
-    }
-    #deleteBox {
-      background: #fff;
-      color: red;
-      border: 1px solid red;
-      margin-top: 10px;
-    }
-    #deleteBox:hover {
-      background: #fdd;
-    }
-
-</style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
-  document.getElementById('exportPDF').addEventListener('click', function () {
-    const canvasEl = document.getElementById('canvas');
-    html2pdf().from(canvasEl).set({
-      margin: 0,
-      filename: 'canvas.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    }).save();
-  });
-
-</script>
+    body {margin:0; font-family:sans-serif; display:flex; height:100vh;}
+    #sidebar {width:180px; background:#f5f5f5; border-right:1px solid #ccc; padding:10px; box-sizing:border-box;}
+    #canvas-wrapper {flex:1; display:flex; justify-content:center; align-items:center; background:#eee; overflow:auto;}
+    #canvas {position:relative; background:#fff; width:815px; height:1154px; box-shadow:0 0 5px rgba(0,0,0,.1); overflow:hidden;}
+    #properties {width:220px; background:#f9f9f9; border-left:1px solid #ccc; padding:10px; box-sizing:border-box;}
+    .draggable {padding:5px; background:transparent; border:1px dashed #aaa; cursor:move; position:absolute; resize:both; overflow:auto; min-width:40px; min-height:20px;}
+    .selected {outline:2px solid #007bff;}
+    .edit-item {display:block; width:100%; padding:8px; margin-bottom:6px; background:#fff; border:1px solid #ccc; border-radius:4px; cursor:pointer;}
+    .edit-item:hover {background:#f0f0f0;}
+    .badge {position:fixed; top:8px; right:8px; font-size:12px; background:#222; color:#fff; padding:4px 8px; border-radius:999px; opacity:.8;}
+  </style>
 </head>
 <body>
+  <div class="badge">DrawQuote v{{VERSION}}</div>
 
-
-<div id="sidebar">
-  <button id="exportPDF" class="edit-item" style="margin-top:20px;">📄 PDF 저장</button>
-  <div style="font-weight:bold; margin-bottom:5px;">문서 편집</div>
-  <div id="editPanel">
-    <button id="addText" class="edit-item">🅰 텍스트</button>
-    <button id="addObject" class="edit-item">🔳 오브젝트</button>
-  </div>
-</div>
-
-<div id="canvas-wrapper">
-  <div id="canvas" style="overflow:auto; max-width:100%; max-height:100%; white-space:nowrap;"></div>
-</div>
-<div id="properties">
-  <label>
-    스타일
-    <select id="fontFamily" disabled>
-      <option value="">선택 안 됨</option>
-      <option value="sans-serif">본고딕</option>
-      <option value="serif">명조</option>
-      <option value="monospace">고정폭</option>
-    </select>
-  </label>
-  <label>
-    크기
-    <select id="fontSize" disabled>
-      <option value="">선택 안 됨</option>
-      <option value="12pt">12pt</option>
-      <option value="14pt">14pt</option>
-      <option value="16pt">16pt</option>
-    </select>
-  </label>
-  <label>
-    입력 형식
-    <select id="inputType" disabled>
-      <option value="">선택 안 됨</option>
-      <option value="text">텍스트</option>
-      <option value="number">숫자</option>
-      <option value="date">날짜</option>
-    </select>
-  </label>
-  
-  <div id="alignmentControls" style="margin-top: 10px;">
-    정렬:
-    <button class="align-btn" data-align="left">좌</button>
-    <button class="align-btn" data-align="center">중앙</button>
-    <button class="align-btn" data-align="right">우</button>
+  <div id="sidebar">
+    <button id="exportPDF" class="edit-item" style="margin-top:20px;">📄 PDF 저장</button>
+    <div style="font-weight:bold; margin-bottom:5px;">문서 편집</div>
+    <div id="editPanel">
+      <button id="addText" class="edit-item">🅰 텍스트</button>
+      <button id="addObject" class="edit-item">🔳 오브젝트</button>
+      <button id="saveBtn" class="edit-item">💾 저장</button>
+      <button id="sendToSF" class="edit-item">🔁 SF로 보내기</button>
+    </div>
   </div>
 
-  <div id="deleteBox" class="delete-btn" style="display: none;">🗑 삭제</div>
-</div>
+  <div id="canvas-wrapper">
+    <div id="canvas" style="overflow:auto; max-width:100%; max-height:100%; white-space:nowrap;"></div>
+  </div>
 
-<script>
-  const canvas = document.getElementById('canvas');
-  const addTextBtn = document.getElementById('addText');
-  const deleteBoxBtn = document.getElementById('deleteBox');
+  <div id="properties">
+    <label>스타일
+      <select id="fontFamily" disabled>
+        <option value="">선택 안 됨</option>
+        <option value="sans-serif">본고딕</option>
+        <option value="serif">명조</option>
+        <option value="monospace">고정폭</option>
+      </select>
+    </label>
+    <label>크기
+      <select id="fontSize" disabled>
+        <option value="">선택 안 됨</option>
+        <option value="12pt">12pt</option>
+        <option value="14pt">14pt</option>
+        <option value="16pt">16pt</option>
+      </select>
+    </label>
+    <label>입력 형식
+      <select id="inputType" disabled>
+        <option value="">선택 안 됨</option>
+        <option value="text">텍스트</option>
+        <option value="number">숫자</option>
+        <option value="date">날짜</option>
+      </select>
+    </label>
+    <div id="alignmentControls" style="margin-top:10px;">
+      정렬:
+      <button class="align-btn" data-align="left">좌</button>
+      <button class="align-btn" data-align="center">중앙</button>
+      <button class="align-btn" data-align="right">우</button>
+    </div>
+    <div id="deleteBox" class="edit-item" style="color:#dc3545; border-color:#dc3545; display:none;">🗑 삭제</div>
+  </div>
 
-  const addObjectBtn = document.getElementById('addObject');
-  addObjectBtn.onclick = () => {
-    const el = document.createElement('div');
-    el.contentEditable = false;
-    el.className = 'draggable';
-    el.innerText = '오브젝트';
-    el.style.top = (50 + count * 40) + 'px';
-    el.style.left = '100px';
-    el.style.width = '150px';
-    el.style.height = '30px';
-    el.style.background = '#f0f0f0';
-    el.dataset.inputType = 'object';
-    count++;
-    canvas.appendChild(el);
-    makeDraggable(el);
-    makeSelectable(el);
-    el.click();
-  };
+  <!-- 앱 스크립트: 로더와 분리 -->
+  <script>
+    const SF_ORIGINS = [
+      "https://your-domain.my.salesforce.com",
+      "https://your-domain.lightning.force.com"
+    ]; // 실제 조직 도메인으로 교체
 
+    const canvas = document.getElementById('canvas');
+    const addTextBtn = document.getElementById('addText');
+    const addObjectBtn = document.getElementById('addObject');
+    const exportBtn = document.getElementById('exportPDF');
+    const saveBtn = document.getElementById('saveBtn');
+    const sendToSFBtn = document.getElementById('sendToSF');
+    const deleteBoxBtn = document.getElementById('deleteBox');
 
-  const fontFamily = document.getElementById('fontFamily');
-  const fontSize = document.getElementById('fontSize');
-  const inputType = document.getElementById('inputType');
+    const fontFamily = document.getElementById('fontFamily');
+    const fontSize = document.getElementById('fontSize');
+    const inputType = document.getElementById('inputType');
 
-  let count = 0;
-  let selectedEl = null;
-  
+    let count = 0;
+    let selectedEl = null;
 
-  addTextBtn.onclick = () => {
-    const el = document.createElement('div');
-    el.contentEditable = true;
-    el.className = 'draggable';
-    el.innerText = '텍스트 입력';
-    el.style.top = (50 + count * 40) + 'px';
-    el.style.left = '100px';
-    el.style.width = '150px';
-    el.style.height = '30px';
-    el.dataset.inputType = 'text';
-    el.dataset.fontFamily = 'sans-serif';
-    el.dataset.fontSize = '12pt';
-    el.style.fontFamily = 'sans-serif';
-    el.style.fontSize = '12pt';
-    count++;
-    canvas.appendChild(el);
-    makeDraggable(el);
-    makeSelectable(el);
-    el.click(); // auto-select
-  };
-
-  function makeDraggable(el) {
-    let isDragging = false;
-    let offsetX, offsetY;
-
-    el.addEventListener('mousedown', function(e) {
-      // Check if near bottom-right corner (resize handle)
-      const rect = el.getBoundingClientRect();
-      const isResizing = e.clientX > rect.right - 10 && e.clientY > rect.bottom - 10;
-      if (isResizing) return;
-
-      if (e.target === el) {
-        isDragging = true;
-        offsetX = e.offsetX;
-        offsetY = e.offsetY;
-        el.style.zIndex = 1000;
-      }
-    });
-
-    document.addEventListener('mousemove', function(e) {
-      if (isDragging) {
-        const canvasRect = canvas.getBoundingClientRect();
-        el.style.left = (e.pageX - canvasRect.left - offsetX) + 'px';
-        el.style.top = (e.pageY - canvasRect.top - offsetY) + 'px';
-      }
-    });
-
-    document.addEventListener('mouseup', function() {
-      isDragging = false;
-    });
-  }
-
-  function makeSelectable(el) {
-    el.addEventListener('click', function(e) {
-      e.stopPropagation();
-      if (selectedEl) selectedEl.classList.remove('selected');
-      selectedEl = el;
-      selectedEl.classList.add('selected');
-
-      fontFamily.disabled = false;
-      fontSize.disabled = false;
-      inputType.disabled = false;
-      deleteBoxBtn.style.display = 'block';
-
-      fontFamily.value = selectedEl.dataset.fontFamily || '';
-      fontSize.value = selectedEl.dataset.fontSize || '';
-      inputType.value = selectedEl.dataset.inputType || '';
-    });
-  }
-
-  document.addEventListener('click', function(e) {
-    const insideProps = document.getElementById('properties').contains(e.target);
-    const insideBox = e.target.classList.contains('draggable');
-    if (!insideProps && !insideBox) {
-      if (selectedEl) selectedEl.classList.remove('selected');
-      selectedEl = null;
-      fontFamily.disabled = true;
-      fontSize.disabled = true;
-      inputType.disabled = true;
-      fontFamily.value = "";
-      fontSize.value = "";
-      inputType.value = "";
-      deleteBoxBtn.style.display = 'none';
+    // 요소 생성 유틸
+    function makeDraggable(el) {
+      let isDragging = false, offsetX=0, offsetY=0;
+      el.addEventListener('mousedown', (e) => {
+        const rect = el.getBoundingClientRect();
+        const isResizing = e.clientX > rect.right - 10 && e.clientY > rect.bottom - 10;
+        if (isResizing) return;
+        if (e.target === el) {
+          isDragging = true;
+          offsetX = e.offsetX; offsetY = e.offsetY;
+          el.style.zIndex = 1000;
+        }
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const r = canvas.getBoundingClientRect();
+        el.style.left = (e.pageX - r.left - offsetX) + 'px';
+        el.style.top  = (e.pageY - r.top  - offsetY) + 'px';
+      });
+      document.addEventListener('mouseup', () => isDragging = false);
     }
-  });
 
-  document.addEventListener('keydown', function(e) {
-    const active = document.activeElement;
-    const isEditing = active && active.isContentEditable;
-    if (!isEditing && selectedEl && (e.key === 'Delete' || e.key === 'Backspace')) {
+    function makeSelectable(el) {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (selectedEl) selectedEl.classList.remove('selected');
+        selectedEl = el; selectedEl.classList.add('selected');
+        fontFamily.disabled = fontSize.disabled = inputType.disabled = false;
+        deleteBoxBtn.style.display = 'block';
+        fontFamily.value = selectedEl.dataset.fontFamily || '';
+        fontSize.value   = selectedEl.dataset.fontSize || '';
+        inputType.value  = selectedEl.dataset.inputType || '';
+      });
+    }
+
+    addTextBtn.onclick = () => {
+      const el = document.createElement('div');
+      el.contentEditable = true;
+      el.className = 'draggable';
+      el.innerText = '텍스트 입력 또는 {{Account.Name}}';
+      Object.assign(el.style, {top:(50+count*40)+'px', left:'100px', width:'150px', height:'30px', fontFamily:'sans-serif', fontSize:'12pt'});
+      el.dataset.inputType = 'text'; el.dataset.fontFamily='sans-serif'; el.dataset.fontSize='12pt';
+      count++; canvas.appendChild(el); makeDraggable(el); makeSelectable(el); el.click();
+    };
+
+    addObjectBtn.onclick = () => {
+      const el = document.createElement('div');
+      el.contentEditable = false;
+      el.className = 'draggable';
+      el.innerText = '오브젝트';
+      Object.assign(el.style, {top:(50+count*40)+'px', left:'100px', width:'150px', height:'30px', background:'#f0f0f0'});
+      el.dataset.inputType = 'object'; count++; canvas.appendChild(el); makeDraggable(el); makeSelectable(el); el.click();
+    };
+
+    document.addEventListener('click', (e) => {
+      const insideProps = document.getElementById('properties').contains(e.target);
+      const insideBox = e.target.classList && e.target.classList.contains('draggable');
+      if (!insideProps && !insideBox) {
+        if (selectedEl) selectedEl.classList.remove('selected');
+        selectedEl = null; fontFamily.disabled = fontSize.disabled = inputType.disabled = true;
+        fontFamily.value = fontSize.value = inputType.value = ""; deleteBoxBtn.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const active = document.activeElement;
+      const isEditing = active && active.isContentEditable;
+      if (!isEditing && selectedEl && (e.key === 'Delete' || e.key === 'Backspace')) {
+        selectedEl.remove();
+        selectedEl=null; fontFamily.disabled=fontSize.disabled=inputType.disabled=true;
+        fontFamily.value=fontSize.value=inputType.value=""; deleteBoxBtn.style.display='none';
+      }
+    });
+
+    deleteBoxBtn.addEventListener('click', () => {
+      if (!selectedEl) return;
       selectedEl.remove();
-      selectedEl = null;
-      fontFamily.disabled = true;
-      fontSize.disabled = true;
-      inputType.disabled = true;
-      fontFamily.value = "";
-      fontSize.value = "";
-      inputType.value = "";
-      deleteBoxBtn.style.display = 'none';
+      selectedEl=null; fontFamily.disabled=fontSize.disabled=inputType.disabled=true;
+      fontFamily.value=fontSize.value=inputType.value=""; deleteBoxBtn.style.display='none';
+    });
+
+    fontFamily.addEventListener('change', function(){ if (selectedEl){ selectedEl.dataset.fontFamily=this.value; selectedEl.style.fontFamily=this.value; }});
+    fontSize.addEventListener('change', function(){ if (selectedEl){ selectedEl.dataset.fontSize=this.value; selectedEl.style.fontSize=this.value; }});
+    inputType.addEventListener('change', function(){ if (selectedEl){ selectedEl.dataset.inputType=this.value; }});
+
+    document.querySelectorAll('.align-btn').forEach(btn=>{
+      btn.addEventListener('click', () => { if (selectedEl) selectedEl.style.textAlign = btn.dataset.align; });
+    });
+
+    // PDF 저장
+    exportBtn.addEventListener('click', () => {
+      const el = document.getElementById('canvas');
+      html2pdf().from(el).set({
+        margin:0, filename:'canvas.pdf',
+        image:{type:'jpeg', quality:0.98},
+        html2canvas:{scale:2},
+        jsPDF:{unit:'pt', format:'a4', orientation:'portrait'}
+      }).save();
+    });
+
+    // 현재 레이아웃 직렬화 (v0.1: 간단히 DOM → 모델)
+    function serializeCanvas(){
+      return Array.from(canvas.querySelectorAll('.draggable')).map(el=>({
+        text: el.innerText,
+        x: el.style.left, y: el.style.top,
+        w: el.style.width, h: el.style.height,
+        inputType: el.dataset.inputType || 'text',
+        fontFamily: el.dataset.fontFamily || '',
+        fontSize: el.dataset.fontSize || '',
+        align: el.style.textAlign || 'left'
+      }));
     }
-  });
 
-  deleteBoxBtn.addEventListener('click', function() {
-    if (selectedEl) {
-      selectedEl.remove();
-      selectedEl = null;
-      fontFamily.disabled = true;
-      fontSize.disabled = true;
-      inputType.disabled = true;
-      fontFamily.value = "";
-      fontSize.value = "";
-      inputType.value = "";
-      deleteBoxBtn.style.display = 'none';
-    }
-  });
+    // 저장 (서버로)
+    saveBtn.addEventListener('click', async ()=>{
+      const model = { version: "{{VERSION}}", items: serializeCanvas() };
+      const res = await fetch("/api/save", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        credentials: "include",
+        body: JSON.stringify(model)
+      });
+      const json = await res.json();
+      alert(json.ok ? "저장 완료" : "저장 실패");
+    });
 
-  fontFamily.addEventListener('change', function() {
-    if (selectedEl) {
-      selectedEl.dataset.fontFamily = this.value;
-      selectedEl.style.fontFamily = this.value;
-    }
-  });
+    // Salesforce로 보내기 (postMessage 예시)
+    sendToSFBtn.addEventListener('click', ()=>{
+      const payload = { type: "DRAWQUOTE_TEMPLATE", version: "{{VERSION}}", items: serializeCanvas() };
+      // 여러 Origin 중 첫 번째로 보냄(실서비스는 현재 parent.origin 검사 후 선택)
+      window.parent.postMessage(payload, SF_ORIGINS[0]);
+    });
 
-  fontSize.addEventListener('change', function() {
-    if (selectedEl) {
-      selectedEl.dataset.fontSize = this.value;
-      selectedEl.style.fontSize = this.value;
-    }
-  });
-
-  inputType.addEventListener('change', function() {
-    if (selectedEl) selectedEl.dataset.inputType = this.value;
-  });
-
-  document.querySelectorAll('.align-btn').forEach(btn => {
-    btn.addEventListener('click', function () {
-      if (selectedEl) {
-        selectedEl.style.textAlign = btn.dataset.align;
+    // Salesforce → iFrame 수신 (origin 검증)
+    window.addEventListener("message", (event)=>{
+      if (!SF_ORIGINS.some(o => event.origin.endsWith(o.split("//")[1]))) return;
+      const msg = event.data || {};
+      if (msg.type === "SF_FIELD_VALUES") {
+        // TODO: {{Account.Name}} 같은 placeholder와 값 매핑하여 캔버스에 반영
+        console.log("받은 필드", msg.fields);
       }
     });
-  });
-
-
-  document.getElementById('exportPDF').addEventListener('click', function () {
-    const canvasEl = document.getElementById('canvas');
-    html2pdf().from(canvasEl).set({
-      margin: 0,
-      filename: 'canvas.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    }).save();
-  });
-
-</script>
+  </script>
 </body>
 </html>
