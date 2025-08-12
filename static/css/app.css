@@ -7,12 +7,30 @@ body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto 
 #properties { width:220px; background:#f9f9f9; border-left:1px solid #ccc; padding:10px; }
 .edit-item { display:block; width:100%; padding:8px; margin-bottom:6px; background:#fff; border:1px solid #ccc; border-radius:6px; cursor:pointer; text-align:left; }
 .edit-item:hover { background:#f0f0f0; }
+.panel-title { font-weight:bold; margin:10px 0 6px; }
+.mt-8 { margin-top:8px; }
+
 .draggable { padding:5px; background:transparent; border:1px dashed #aaa; cursor:move; position:absolute; resize:both; overflow:auto; min-width:40px; min-height:20px; }
 .selected { outline:2px solid var(--brand); }
 .align-btn { padding:4px 8px; margin-right:5px; border:1px solid #ccc; background:#fff; cursor:pointer; }
 .align-btn:hover { background:#eee; }
+.align-wrap { margin-top:10px; }
+
 .delete-btn { display:none; padding:8px; border-radius:6px; background:#fff; color:#dc3545; border:1px solid #dc3545; margin-top:10px; cursor:pointer; }
 .delete-btn:hover { background:#ffe8ea; }
 .badge { position:fixed; top:8px; right:8px; font-size:12px; background:#222; color:#fff; padding:4px 8px; border-radius:999px; opacity:.85; }
 label { display:block; margin-top:10px; font-weight:600; }
 select { width:100%; padding:6px; border:1px solid #ccc; border-radius:6px; margin-top:6px; }
+
+/* 시각 구분 */
+.draggable[data-input-type="field"]  { border:1px solid #007bff; }
+.draggable[data-input-type="object"] { background:#f0f0f0; }
+
+/* === PDF 미리보기 모달 === */
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); align-items:center; justify-content:center; padding:24px; z-index:9999; }
+.modal--open { display:flex; }
+.modal__dialog { width:min(900px,95vw); height:min(90vh,1000px); background:#fff; border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.25); display:flex; flex-direction:column; overflow:hidden; }
+.modal__header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid #eee; background:#fafafa; }
+.modal__close { border:1px solid #ccc; background:#fff; border-radius:6px; cursor:pointer; padding:4px 8px; }
+.modal__close:hover { background:#f3f3f3; }
+.modal__frame { flex:1; width:100%; border:0; background:#fff; }

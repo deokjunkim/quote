@@ -12,9 +12,15 @@ def set_security_headers(resp):
     resp.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' https://cdnjs.cloudflare.com; "
-        "style-src 'self'; "
-        "img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: blob:; "
+        "font-src 'self'; "
+        # 🔑 미리보기용 blob: iframe 허용
+        "frame-src 'self' blob:; "
+        # html2pdf/html2canvas가 blob 워커를 쓸 수 있게
+        "worker-src 'self' blob:; "
         "connect-src 'self'; "
+        "object-src 'none'; "
         f"frame-ancestors {SF_FRAME_ANCESTORS};"
     )
     resp.headers["X-Content-Type-Options"] = "nosniff"
@@ -23,7 +29,7 @@ def set_security_headers(resp):
 
 @app.get("/")
 def index():
-    return render_template("create_quote.html", VERSION="0.1")
+    return render_template("create_quote.html", VERSION="0.11")
 
 if __name__ == "__main__":
     app.run(debug=True)

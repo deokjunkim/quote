@@ -5,20 +5,19 @@
   <title>DrawQuote v{{VERSION}}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
-  <!-- 외부 라이브러리: SRI 권장 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
-          integrity="sha512-YcsIP6w1QnN0r0m7X8lY2QGg3Wc6f0x8QO6X3jYq6p9f3q3v1vN1k7mQw0h9wF0n8o1a7wq6gZFZ8C2aF3+J1w=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!-- html2pdf: SRI 제거(무결성 불일치로 차단되던 문제 방지) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
 </head>
 <body>
   <div class="badge">DrawQuote v{{VERSION}}</div>
 
   <div id="sidebar">
-    <button id="exportPDF" class="edit-item" style="margin-top:8px;">AA📄 PDF 저장A</button>
-    <div style="font-weight:bold; margin:10px 0 6px;">문서 편집</div>
+    <button id="exportPDF" class="edit-item mt-8">📄 PDF 저장</button>
+    <button id="previewPDF" class="edit-item">👁 미리보기</button>
+    <div class="panel-title">문서 편집</div>
     <button id="addText" class="edit-item">🅰 텍스트</button>
-    <button id="addObject" class="edit-item">🔳 오브젝트</button>
+    <button id="addField" class="edit-item">🏷 필드</button>
   </div>
 
   <div id="canvas-wrapper"><div id="canvas"></div></div>
@@ -40,20 +39,39 @@
         <option value="16pt">16pt</option>
       </select>
     </label>
-    <label>입력 형식
-      <select id="inputType" disabled>
-        <option value="">선택 안 됨</option>
-        <option value="text">텍스트</option>
-        <option value="number">숫자</option>
-        <option value="date">날짜</option>
-      </select>
-    </label>
-    <div style="margin-top:10px;">정렬:
+
+    <!-- 필드 박스 전용 속성 -->
+    <div id="fieldProps" style="display:none; margin-top:10px;">
+      <label>오브젝트
+        <select id="sfObject">
+          <option value="Account">Account</option>
+          <option value="Opportunity">Opportunity</option>
+          <option value="Order">Order</option>
+        </select>
+      </label>
+      <label>필드
+        <select id="sfField"></select>
+      </label>
+    </div>
+
+    <div class="align-wrap">정렬:
       <button class="align-btn" data-align="left">좌</button>
       <button class="align-btn" data-align="center">중앙</button>
       <button class="align-btn" data-align="right">우</button>
     </div>
+
     <div id="deleteBox" class="delete-btn">🗑 삭제</div>
+  </div>
+
+  <!-- PDF 미리보기 모달 -->
+  <div id="previewModal" class="modal" aria-hidden="true">
+    <div class="modal__dialog">
+      <div class="modal__header">
+        <strong>PDF 미리보기</strong>
+        <button id="closePreview" class="modal__close" aria-label="닫기">✕</button>
+      </div>
+      <iframe id="previewFrame" class="modal__frame" title="PDF Preview"></iframe>
+    </div>
   </div>
 </body>
 </html>
